@@ -55,4 +55,28 @@ describe('handler', () => {
 
     expect(botResponse).toHaveBeenCalledWith('Unrecognized command. Type /help to get an overview of available commands');
   });
+
+  it('returns 200 without crashing when event body is malformed JSON', async () => {
+    const { handler } = await import('../index.js');
+
+    const response = await handler({ body: 'not-valid-json' });
+
+    expect(response).toEqual({
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: true })
+    });
+  });
+
+  it('returns 200 without crashing when message text is missing', async () => {
+    const { handler } = await import('../index.js');
+
+    const response = await handler({ body: JSON.stringify({ message: {} }) });
+
+    expect(response).toEqual({
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: true })
+    });
+  });
 });

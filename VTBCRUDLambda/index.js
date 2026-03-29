@@ -2,7 +2,19 @@ import { botResponse } from './src/services/telegram-bot.service.js';
 import { listSearches, getNewestResults, createNewSearch, updateSearch, deleteSearch } from './src/services/db-crud.service.js';
 
 export const handler = async (event) => {
-  const text = JSON.parse(event.body).message.text;
+  let text;
+  try {
+    text = JSON.parse(event.body).message.text;
+  } catch(e) {
+    console.log('Failed to parse event body', e);
+    return finalizeLambda();
+  }
+
+  if (!text) {
+    console.log('No message text found in event');
+    return finalizeLambda();
+  }
+
   switch (true) {
     case text.startsWith('/ls'):
       await listSearches(text);

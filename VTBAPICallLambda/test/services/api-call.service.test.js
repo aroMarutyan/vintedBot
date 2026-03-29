@@ -117,4 +117,16 @@ describe('firstCall', () => {
     expect(calledUrl.searchParams.get('price_to')).toBeNull();
     expect(calledUrl.searchParams.get('status_ids')).toBe('');
   });
+
+  it('records error and returns empty array when fetch rejects with a network error in firstCall', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await firstCall(createSearch());
+
+    expect(result).toEqual([]);
+    expect(ERROR_SEARCHES_ARRAY).toHaveLength(1);
+    expect(ERROR_SEARCHES_ARRAY[0]).toMatchObject({ alias: 'macbook-pro', errorType: 'first call', errorCode: 'N/A' });
+  });
+
 });

@@ -131,6 +131,9 @@ async function getAllSearches() {
 async function getSpecificSearch(searchId) {
   try {
     const search = await DDB.send(new GetItemCommand(getSearchParams(searchId)));
+    if (!search.Item) {
+      throw new Error(`Search with id ${searchId} not found`);
+    }
     const res = unmarshall(search.Item);
     return res;
 
