@@ -168,4 +168,37 @@ describe('firstCall', () => {
     expect(calledUrl.searchParams.get('price_to')).toBeNull();
     expect(calledUrl.searchParams.getAll('status_ids[]')).toEqual([]);
   });
+
+  it('records error and returns empty array when fetch rejects with a network error in firstCall', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await firstCall(createSearch());
+
+    expect(result).toEqual([]);
+    expect(ERROR_SEARCHES_ARRAY).toHaveLength(1);
+    expect(ERROR_SEARCHES_ARRAY[0]).toMatchObject({ alias: 'macbook-pro', errorType: 'first call', errorCode: 'N/A' });
+  });
+
+  it('records error and returns empty array when fetch rejects with a network error in callNextPage', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          items: [],
+          pagination: { current_page: 1, total_pages: 5 }
+        })
+      })
+      .mockRejectedValue(new Error('ETIMEDOUT'));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await firstCall(createSearch({ statusIds: new Set(['']) }));
+
+    expect(result).toEqual([]);
+    const nextPageError = ERROR_SEARCHES_ARRAY.find(e => e.errorType === 'next page call');
+    expect(nextPageError).toBeDefined();
+    expect(nextPageError.alias).toBe('macbook-pro');
+  });
 });

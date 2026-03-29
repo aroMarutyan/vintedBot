@@ -55,4 +55,36 @@ describe('search-handler.service', () => {
     expect(getIdNum()).toBe('123456');
     randomSpy.mockRestore();
   });
+
+  it('maps all truthy active values to true and all others to false', async () => {
+    const { handleNewValue } = await import('../../../src/services/search-handler.service.js');
+
+    expect(handleNewValue('active', '1')).toBe(true);
+    expect(handleNewValue('active', 'true')).toBe(true);
+    expect(handleNewValue('active', 'yes')).toBe(true);
+    expect(handleNewValue('active', 'false')).toBe(false);
+    expect(handleNewValue('active', 'no')).toBe(false);
+    expect(handleNewValue('active', '')).toBe(false);
+  });
+
+  it('formats statusIds through formatStatusIds when key is statusIds', async () => {
+    const { handleNewValue } = await import('../../../src/services/search-handler.service.js');
+
+    const result = handleNewValue('statusIds', '3,4');
+    expect(result).toBeInstanceOf(Set);
+    expect(Array.from(result)).toEqual(['3', '4']);
+  });
+
+  it('does not throw when params count exactly meets the required minimum', async () => {
+    const { validateParamCount } = await import('../../../src/services/search-handler.service.js');
+
+    expect(() => validateParamCount(['/ns', 'alias', 'term'], 3, 'create', 'a and b')).not.toThrow();
+  });
+
+  it('handles maxPrice numeric validation through handleNewValue', async () => {
+    const { handleNewValue } = await import('../../../src/services/search-handler.service.js');
+
+    expect(handleNewValue('maxPrice', '1000')).toBe('1000');
+    expect(() => handleNewValue('maxPrice', 'abc')).toThrow('maxPrice: abc is not a valid number');
+  });
 });

@@ -6,8 +6,17 @@ import { ERROR_SEARCHES_ARRAY, displayCurrentInstanceErrors } from './src/servic
 const MAX_NUMBER_OF_RESULTS = 5;
 
 export const handler = async () => {
-
-  const searches = (await getSearches()).filter(search => search.active);
+  let searches;
+  try {
+    searches = (await getSearches()).filter(search => search.active);
+  } catch(e) {
+    console.log('Failed to retrieve searches from DB', e);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'Failed to retrieve searches' })
+    };
+  }
 
   for (const search of searches) {
     const results = await firstCall(search);

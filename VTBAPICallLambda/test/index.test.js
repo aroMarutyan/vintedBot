@@ -141,4 +141,52 @@ describe('handler', () => {
     expect(sendResultsToTelegram).toHaveBeenCalledTimes(1);
     expect(sendResultsToTelegram.mock.calls[0][0]).toEqual([{ id: 'first-result', updated_at_ts: 100 }]);
   });
+
+  it('processes multiple active searches independently', async () => {
+    getSearches.mockResolvedValue([
+      { searchId: 'search-a', alias: 'a', active: true },
+      { searchId: 'search-b', alias: 'b', active: true },
+      { searchId: 'search-c', alias: 'c', active: false }
+    ]);
+    firstCall
+      .mockResolvedValueOnce([{ id: 'result-a', updated_at_ts: 100 }])
+      .mockResolvedValueOnce([{ id: 'result-b', updated_at_ts: 200 }]);
+
+    await handler();
+
+    expect(firstCall).toHaveBeenCalledTimes(2);
+    expect(firstCall).toHaveBeenNthCalledWith(1, { searchId: 'search-a', alias: 'a', active: true });
+    expect(firstCall).toHaveBeenNthCalledWith(2, { searchId: 'search-b', alias: 'b', active: true });
+    expect(updateSearchData).toHaveBeenCalledTimes(2);
+    expect(sendResultsToTelegram).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns 500 error response when getSearches throws', async () => {
+    getSearches.mockRejectedValue(new Error('db connection failed'));
+
+    const response = await handler();
+
+    expect(response).toEqual({
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'Failed to retrieve searches' })
+    });
+    expect(firstCall).not.toHaveBeenCalled();
+    expect(displayCurrentInstanceErrors).not.toHaveBeenCalled();
+  });
+
+  it('skips processing when firstCall returns empty results for a search', async () => {
+    getSearches.mockResolvedValue([
+      { searchId: 'empty-search', alias: 'e', active: true },
+      { searchId: 'active-search', alias: 'a', active: true }
+    ]);
+    firstCall
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'item-1', updated_at_ts: 50 }]);
+
+    await handler();
+
+    expect(updateSearchData).toHaveBeenCalledTimes(1);
+    expect(sendResultsToTelegram).toHaveBeenCalledTimes(1);
+  });
 });

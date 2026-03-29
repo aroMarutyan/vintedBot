@@ -220,4 +220,74 @@ describe('db-crud.service', () => {
 
     expect(botResponse).toHaveBeenCalledWith(expect.stringContaining('Error deleting search'));
   });
+
+  it('sends no-results message when list is empty', async () => {
+    const { __mocks } = await import('@aws-sdk/client-dynamodb');
+    const { botResponse } = await import('../../../src/services/telegram-bot.service.js');
+    const { listSearches } = await import('../../../src/services/db-crud.service.js');
+
+    __mocks.send.mockResolvedValue({ Items: [] });
+
+    await listSearches('/ls');
+
+    expect(botResponse).toHaveBeenCalledWith('No searches found');
+  });
+
+  it('returns all searches with newestOffer when no search id is provided to getNewestResults', async () => {
+    const { __mocks } = await import('@aws-sdk/client-dynamodb');
+    const { botResponseHTML, buildTelegramResponse } = await import('../../../src/services/telegram-bot.service.js');
+    const { getNewestResults } = await import('../../../src/services/db-crud.service.js');
+
+    __mocks.send.mockResolvedValue({
+      Items: [
+        { alias: 'search-a', newestOffer: { title: 'item-a' } },
+        { alias: 'search-b' },
+        { alias: 'search-c', newestOffer: { title: 'item-c' } }
+      ]
+    });
+
+    await getNewestResults('/gl');
+
+    expect(buildTelegramResponse).toHaveBeenCalledTimes(2);
+    expect(botResponseHTML).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends no output when no searches have a newestOffer', async () => {
+    const { __mocks } = await import('@aws-sdk/client-dynamodb');
+    const { botResponseHTML, buildTelegramResponse } = await import('../../../src/services/telegram-bot.service.js');
+    const { getNewestResults } = await import('../../../src/services/db-crud.service.js');
+
+    __mocks.send.mockResolvedValue({
+      Items: [{ alias: 'search-a' }, { alias: 'search-b' }]
+    });
+
+    await getNewestResults('/gl');
+
+    expect(buildTelegramResponse).not.toHaveBeenCalled();
+    expect(botResponseHTML).not.toHaveBeenCalled();
+  });
+
+  it('sends error response when getNewestResults fails', async () => {
+    const { __mocks } = await import('@aws-sdk/client-dynamodb');
+    const { botResponse } = await import('../../../src/services/telegram-bot.service.js');
+    const { getNewestResults } = await import('../../../src/services/db-crud.service.js');
+
+    __mocks.send.mockRejectedValue(new Error('scan failed'));
+
+    await getNewestResults('/gl');
+
+    expect(botResponse).toHaveBeenCalledWith(expect.stringContaining('Error showing newest results'));
+  });
+
+  it('sends error response when getSpecificSearch returns no item', async () => {
+    const { __mocks } = await import('@aws-sdk/client-dynamodb');
+    const { botResponse } = await import('../../../src/services/telegram-bot.service.js');
+    const { getNewestResults } = await import('../../../src/services/db-crud.service.js');
+
+    __mocks.send.mockResolvedValueOnce({ Item: undefined });
+
+    await getNewestResults('/gl\n99');
+
+    expect(botResponse).toHaveBeenCalledWith(expect.stringContaining('Error'));
+  });
 });

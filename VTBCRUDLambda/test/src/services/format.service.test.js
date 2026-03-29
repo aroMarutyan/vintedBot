@@ -29,4 +29,29 @@ describe('format.service', () => {
   it('prioritizes all when provided in list', () => {
     expect(Array.from(formatStatusIds('3,all,4'))).toEqual(['']);
   });
+
+  it('shows inactive status and includes min and max price when present', () => {
+    const result = formatSearchToHTML({
+      alias: 'phone',
+      active: false,
+      searchTerm: 'iphone 14',
+      searchId: '99',
+      minPrice: '100',
+      maxPrice: '500',
+      statusIds: new Set(['1', '2'])
+    });
+
+    expect(result).toContain('<b>IS ACTIVE:</b> No');
+    expect(result).toContain('<b>MIN PRICE:</b> 100');
+    expect(result).toContain('<b>MAX PRICE:</b> 500');
+    expect(result).toContain('<b>STATUS IDS:</b> 1, 2');
+  });
+
+  it('returns empty Set when given a string with only invalid status ids', () => {
+    expect(Array.from(formatStatusIds('9,10,99'))).toEqual([]);
+  });
+
+  it('returns all-status set when given an empty string', () => {
+    expect(Array.from(formatStatusIds(''))).toEqual(['']);
+  });
 });
