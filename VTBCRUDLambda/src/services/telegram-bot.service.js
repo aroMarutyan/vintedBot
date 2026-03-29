@@ -8,7 +8,7 @@ export async function botResponse(text) {
 }
 
 export async function botResponseHTML(text) {
-  await BOT.sendMessage(CHAT_ID, text, { parse_mode: 'HTML'});
+  await BOT.sendMessage(CHAT_ID, text, { parse_mode: 'HTML' });
 }
 
 export function buildTelegramResponse(alias, item) {
