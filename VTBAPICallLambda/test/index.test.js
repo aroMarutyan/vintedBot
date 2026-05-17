@@ -14,6 +14,9 @@ vi.mock('../src/services/api-call-error-handler.service.js', () => ({
   ERROR_SEARCHES_ARRAY: [],
   displayCurrentInstanceErrors: vi.fn()
 }));
+vi.mock('../src/services/session-cookie.service.js', () => ({
+  getSessionCookie: vi.fn().mockResolvedValue('mocked-session-cookie')
+}));
 
 import { handler } from '../index.js';
 import { firstCall } from '../src/services/api-call.service.js';
