@@ -1,4 +1,5 @@
-export const SEARCH_URL = new URL('https://www.vinted.es/api/v2/catalog/items');
+export const BASE_URL = 'https://www.vinted.es';
+export const SEARCH_URL = new URL(`${BASE_URL}/api/v2/catalog/items`);
 export const HEADERS = new Headers();
 
 // Required headers for Vinted API

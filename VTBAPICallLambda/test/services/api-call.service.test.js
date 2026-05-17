@@ -32,7 +32,8 @@ describe('firstCall', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const search = createSearch();
-    const result = await firstCall(search);
+    const sessionCookie = '_vinted_fr_session=test-cookie-value';
+    const result = await firstCall(search, sessionCookie);
 
     expect(result).toEqual(items);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -51,6 +52,9 @@ describe('firstCall', () => {
     expect(calledUrl.searchParams.get('color_ids')).toBe('');
     expect(calledUrl.searchParams.get('material_ids')).toBe('');
     expect(calledUrl.searchParams.get('global_search_session_id')).toBe('ac629554-c6cc-40f9-a5a9-60580eb0fce9');
+
+    const calledHeaders = fetchMock.mock.calls[0][1].headers;
+    expect(calledHeaders.get('Cookie')).toBe('_vinted_fr_session=test-cookie-value');
   });
 
   it('returns empty array when first page has no items', async () => {

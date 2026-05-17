@@ -2,6 +2,7 @@ import { firstCall } from './src/services/api-call.service.js';
 import { sendResultsToTelegram } from './src/services/telegram-bot.service.js';
 import { getSearches, updateSearchData } from './src/services/db-crud.service.js';
 import { ERROR_SEARCHES_ARRAY, displayCurrentInstanceErrors } from './src/services/api-call-error-handler.service.js';
+import { getSessionCookie } from './src/services/session-cookie.service.js';
 
 const MAX_NUMBER_OF_RESULTS = 5;
 
@@ -18,8 +19,20 @@ export const handler = async () => {
     };
   }
 
+  let sessionCookie;
+  try {
+    sessionCookie = await getSessionCookie();
+  } catch(e) {
+    console.log('Failed to retrieve session cookie', e);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'Failed to retrieve session cookie' })
+    };
+  }
+
   for (const search of searches) {
-    const results = await firstCall(search);
+    const results = await firstCall(search, sessionCookie);
     await handleResults(search, results);
   }
 
