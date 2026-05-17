@@ -1,10 +1,10 @@
 import { SEARCH_URL, HEADERS } from '../config/url-config.js';
 import { ERROR_SEARCHES_ARRAY, createErrorSearchEntry } from './api-call-error-handler.service.js';
 
-export async function firstCall(search) {
+export async function firstCall(search, sessionCookie) {
   const url = buildURL(search);
   try {
-    const res = await fetchSearchResults(url, search.alias);
+    const res = await fetchSearchResults(url, search.alias, sessionCookie);
     return res.items || [];
   } catch(e) {
     console.log('First call failed', e);
@@ -14,8 +14,13 @@ export async function firstCall(search) {
   }
 }
 
-async function fetchSearchResults(url, searchAlias) {
-  const rawResults = await fetch(url, { headers: HEADERS });
+async function fetchSearchResults(url, searchAlias, sessionCookie) {
+  const headers = new Headers(HEADERS);
+  if (sessionCookie) {
+    headers.append('Cookie', sessionCookie);
+  }
+
+  const rawResults = await fetch(url, { headers });
   if (rawResults.ok) {
     const jsonResults = await rawResults.json();
     return jsonResults;

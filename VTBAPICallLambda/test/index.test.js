@@ -14,16 +14,21 @@ vi.mock('../src/services/api-call-error-handler.service.js', () => ({
   ERROR_SEARCHES_ARRAY: [],
   displayCurrentInstanceErrors: vi.fn()
 }));
+vi.mock('../src/services/session-cookie.service.js', () => ({
+  getSessionCookie: vi.fn()
+}));
 
 import { handler } from '../index.js';
 import { firstCall } from '../src/services/api-call.service.js';
 import { getSearches, updateSearchData } from '../src/services/db-crud.service.js';
 import { sendResultsToTelegram } from '../src/services/telegram-bot.service.js';
 import { displayCurrentInstanceErrors } from '../src/services/api-call-error-handler.service.js';
+import { getSessionCookie } from '../src/services/session-cookie.service.js';
 
 describe('handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getSessionCookie.mockResolvedValue('_vinted_fr_session=test-session-cookie');
   });
 
   it('processes only active searches and returns a successful response', async () => {
@@ -36,7 +41,7 @@ describe('handler', () => {
     const response = await handler();
 
     expect(firstCall).toHaveBeenCalledTimes(1);
-    expect(firstCall).toHaveBeenCalledWith({ searchId: 'active-1', alias: 'a', active: true });
+    expect(firstCall).toHaveBeenCalledWith({ searchId: 'active-1', alias: 'a', active: true }, '_vinted_fr_session=test-session-cookie');
     expect(updateSearchData).not.toHaveBeenCalled();
     expect(sendResultsToTelegram).not.toHaveBeenCalled();
     expect(displayCurrentInstanceErrors).toHaveBeenCalledTimes(1);
@@ -155,8 +160,8 @@ describe('handler', () => {
     await handler();
 
     expect(firstCall).toHaveBeenCalledTimes(2);
-    expect(firstCall).toHaveBeenNthCalledWith(1, { searchId: 'search-a', alias: 'a', active: true });
-    expect(firstCall).toHaveBeenNthCalledWith(2, { searchId: 'search-b', alias: 'b', active: true });
+    expect(firstCall).toHaveBeenNthCalledWith(1, { searchId: 'search-a', alias: 'a', active: true }, '_vinted_fr_session=test-session-cookie');
+    expect(firstCall).toHaveBeenNthCalledWith(2, { searchId: 'search-b', alias: 'b', active: true }, '_vinted_fr_session=test-session-cookie');
     expect(updateSearchData).toHaveBeenCalledTimes(2);
     expect(sendResultsToTelegram).toHaveBeenCalledTimes(2);
   });
@@ -170,6 +175,23 @@ describe('handler', () => {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ok: false, error: 'Failed to retrieve searches' })
+    });
+    expect(firstCall).not.toHaveBeenCalled();
+    expect(displayCurrentInstanceErrors).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 error response when getSessionCookie throws', async () => {
+    getSearches.mockResolvedValue([
+      { searchId: 'active-1', alias: 'a', active: true }
+    ]);
+    getSessionCookie.mockRejectedValue(new Error('Session cookie not found in response'));
+
+    const response = await handler();
+
+    expect(response).toEqual({
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'Failed to retrieve session cookie' })
     });
     expect(firstCall).not.toHaveBeenCalled();
     expect(displayCurrentInstanceErrors).not.toHaveBeenCalled();
